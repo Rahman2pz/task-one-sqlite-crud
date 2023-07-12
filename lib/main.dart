@@ -2,8 +2,11 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:task_one/adds/add_helper.dart';
+import 'package:provider/provider.dart';
+import 'package:task_one/provider/AdsProvider/ads_provider.dart';
 import 'package:task_one/firebase_options.dart';
+import 'package:task_one/provider/DBProvier/db_provider.dart';
+import 'package:task_one/provider/DBProvier/recyclebin_provider.dart';
 import 'package:task_one/view/dash_bord.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:task_one/view/splash_screen.dart';
@@ -37,15 +40,22 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        primaryColor: Colors.blue,
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-        useMaterial3: true,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) =>  AdsProvider()),
+        ChangeNotifierProvider(create: (context) =>  DBProvider()),
+        ChangeNotifierProvider(create: (context) => RecycleBinProvider()),
+      ],
+      child:MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'Flutter Demo',
+        theme: ThemeData(
+          primaryColor: Colors.blue,
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+          useMaterial3: true,
+        ),
+        home: const SpashScreen(),
       ),
-      home: const SpashScreen(),
     );
   }
 }

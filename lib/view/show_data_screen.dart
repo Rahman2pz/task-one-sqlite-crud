@@ -1,14 +1,17 @@
-import 'dart:ffi';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:task_one/adds/add_helper.dart';
+import 'package:task_one/provider/AdsProvider/ads_provider.dart';
+import 'package:task_one/ads/add_helper.dart';
 import 'package:task_one/db/db.dart';
 import 'package:task_one/model/user.dart';
+import 'package:task_one/provider/DBProvier/db_provider.dart';
 
 class ShowDataScreen extends StatefulWidget {
+
   @override
   _ShowDataScreenState createState() => _ShowDataScreenState();
 }
@@ -20,22 +23,25 @@ class _ShowDataScreenState extends State<ShowDataScreen> {
   final phoneController = TextEditingController();
   File? _pickImageSelect;
 
-
+  // TODO: Add _kAdIndex
+  static const _kAdIndex = 4;
 
   @override
   void initState() {
     super.initState();
-    _loadUsers();
+    final adsProvider = Provider.of<AdsProvider>(context,listen: false);
+    Future.delayed(const Duration(seconds: 1), () {
+      adsProvider.loadNativeAdTwo();
+    },);
+    final dbProvider = Provider.of<DBProvider>(context, listen:  false);
+    dbProvider.loadUser();
+    // _loadUsers();
   }
 
-
-
-    Future<void> _loadUsers() async {
-      List<User> users = await SqliteDatabaseHelper().getAllUsers();
-      setState(() {
-        userList = users;
-      });
-    }
+    // Future<void> _loadUsers() async {
+    //   final dbProvider = Provider.of<DBProvider>(context, listen:  false);
+    //   dbProvider.loadUser();
+    // }
 
     void imageSelected() async{
       final ImagePicker picker = ImagePicker();
@@ -50,7 +56,18 @@ class _ShowDataScreenState extends State<ShowDataScreen> {
     }
 
     @override
+  void dispose() {
+    super.dispose();
+    final adsProvider = Provider.of<AdsProvider>(context, listen: false);
+    adsProvider.nativeAdTwo!.dispose();
+    nameController.dispose();
+    phoneController.dispose();
+  }
+  // int itemCount = userList.length + (adsProvider.isNativeAdLoaded ? 1 : 0);
+    @override
     Widget build(BuildContext context) {
+      final adsProvider= Provider.of<AdsProvider>(context);
+      final dbProvider= Provider.of<DBProvider>(context);
       return Scaffold(
           appBar: AppBar(
             centerTitle: true,
@@ -58,150 +75,110 @@ class _ShowDataScreenState extends State<ShowDataScreen> {
             backgroundColor: Colors.blue,
             title: const Text('User List', style: TextStyle(color: Colors.white)),
           ),
-          body: userList.isNotEmpty ?
+          body: dbProvider.userList.isNotEmpty ?
           ListView.builder(
             // reverse: true,
-            itemCount: userList.length,
+            itemCount: dbProvider.userList.length ,
             itemBuilder: (context, index) {
-              User user = userList[index];
-              return Card(
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundImage: FileImage(File(user.imageUrl.toString())),
-                  ),
-                  title: Text(user.name.toString()),
-                  subtitle: Text('phone: ${user.phNumber}'),
-                  trailing: SizedBox(
-                    width: 70,
-                    child:  Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: IconButton(
-                            // update
-                            onPressed: (){
-                              _showUpdateBottomSheet(context,userList[index].id!.toInt(), user.name.toString(), user.phNumber.toString() );
-                            },icon: const Icon(Icons.edit),
-                          ),
-                        ),
-                        // SizedBox(width: 3),
-                        Expanded(
-                          child: IconButton(onPressed: (){
-                            setState(() {
-                              SqliteDatabaseHelper().deleteUser(user.id!.toInt()).then((value) {
-                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Data is remove')));
-                                setState(() {
-                                  userList.remove(user);
-                                });
-                              });
-                            });
-                          },icon: const Icon(Icons.delete),
-                          ),
-                        ),
-                      ],
+              // print(userList.length);
+              int userListIndex = index - (index ~/ 4);
+              User user = dbProvider.userList[index];
+              // User user = userList[index];
+              if (adsProvider.isNativeAdLoadedTwo && adsProvider.nativeAdTwo != null && index == _kAdIndex) {
+                // int userListIndex = index - (index ~/ 4);
+                User user = dbProvider.userList[index];
+                return Container(
+                  height: 72.0,
+                  alignment: Alignment.center,
+                  child: AdWidget(ad: adsProvider.nativeAdTwo!),
+                );
+              }
+                return Card(
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundImage: FileImage(File(user.imageUrl.toString())),
                     ),
+                    title: Text(user.name.toString()),
+                    subtitle: Text('phone: ${user.phNumber}'),
+                    trailing: PopupMenuButton(
+                      onSelected: (String value) {
+                        if (value == 'delete') {
+                          dbProvider.deleteUser(context,user.id!.toInt());
+                        } else if (value == 'update') {
+                          _showBottomSheet(context, user.id!.toInt(), user.name.toString(),
+                              user.phNumber.toString(), user.imageUrl.toString());
+                        }
+                      },
+                      itemBuilder: (context) {
+                        return [
+                          const PopupMenuItem(
+                              value: 'delete',
+                              child: Text('delete')),
+                          const PopupMenuItem(
+                              value: 'update',
+                              child: Text('update')),
+
+                        ];
+                      },)
+
                   ),
-                ),
-              );
-            },
+                );
+              }
           ):const  Center(child:  Text('Data is Empty', style: TextStyle(fontSize: 18)))
       );
     }
 
-    void _showUpdateBottomSheet(BuildContext context, int userId, String name, String phNumber) {
-      nameController.text = name;
-      phoneController.text = phNumber;
-      showModalBottomSheet(
-        context: context,
-        builder: (BuildContext context) {
-          // String updatedName = '';
-          // String updatedPhNumber = '';
-          // String updatedImageUrl = '';
-
-          return Container(
-            // Bottom sheet content
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Form(
-                    key: _form,
-                    child: Column(
-                      children: [
-                        TextFormField(
-                          controller: nameController,
-
-                          // onChanged: (value) {
-                          //   updatedName = value;
-                          // },
-                          decoration:const  InputDecoration(
-                              hintText: 'name'
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  TextFormField(
-                    controller: phoneController,
-                    // onChanged: (value) {
-                    //   updatedPhNumber = value;
-                    // },
-                    decoration:const InputDecoration(
-                      labelText: 'phone',
-                    ),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      // if (_form.currentState!.validate()){
-                      //   // Close the bottom sheet
-                      // }
-
-                      _updateUser(userId, nameController.text, phoneController.text);
-                      Navigator.pop(context);
-                    },
-                    child: const Text('Update'),
-                  ),
-                ],
+  void _showBottomSheet(BuildContext context,int id, String name, String phoneNumber, String imageUrl) {
+    nameController.text = name;
+    // or
+    // final nameController = TextEditingController(text: name);
+    phoneController.text = phoneNumber;
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(height: 20),
+              TextField(
+                controller: nameController,
               ),
-            ),
-          );
-        },
-      );
+              SizedBox(height: 10),
+              TextField(
+                controller: phoneController,
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  // Handle update action
+                  final dbProvider = Provider.of<DBProvider>(context,listen:  false);
+                  dbProvider.updateData(id, nameController.text, phoneController.text,imageUrl);
+                  Navigator.pop(context);
+                },
+                child: Text('Update'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+
+  Future<User?> getUserById(int userId) async {
+    Database db = await SqliteDatabaseHelper().getDataBase();
+    List<Map<String, dynamic>> result = await db.query(
+      '${SqliteDatabaseHelper().tableName}',
+      where: 'id = ?',
+      whereArgs: [userId],
+    );
+
+    if (result.isNotEmpty) {
+      return User.fromMap(result.first);
     }
-
-    void _updateUser(int userId, String name, String phNumber) async {
-      Database db = await SqliteDatabaseHelper().getDataBase();
-
-      String query = "UPDATE ${SqliteDatabaseHelper().tableName} SET name = '$name', phNumber = '$phNumber' WHERE id = $userId";
-      await db.rawUpdate(query);
-      // Fetch the updated user data from the database
-      User? updatedUser = await SqliteDatabaseHelper().getUserById(userId);
-
-      setState(() {
-        int index = userList.indexWhere((user) => user.id == userId);
-        if (index != -1) {
-          userList[index] = updatedUser!;
-        }
-        // Update the necessary state variables
-        // that are used to display the updated data in the UI
-      });
-    }
-
-    Future<User?> getUserById(int userId) async {
-      Database db = await SqliteDatabaseHelper().getDataBase();
-      List<Map<String, dynamic>> result = await db.query(
-        '${SqliteDatabaseHelper().tableName}',
-        where: 'id = ?',
-        whereArgs: [userId],
-      );
-
-      if (result.isNotEmpty) {
-        return User.fromMap(result.first);
-      }
-      return null;
-    }
+    return null;
+  }
 
   }
 

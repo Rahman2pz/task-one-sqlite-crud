@@ -48,7 +48,7 @@ class SqliteDatabaseHelper{
       return User(
         id: usersMaps[index]['id'],
         name: usersMaps[index]['name'],
-        phNumber: usersMaps[index]['phoneNumber'],
+        phNumber: usersMaps[index]['phNumber'],
         imageUrl: usersMaps[index]['imageUrl'],
       );
     });
@@ -88,6 +88,12 @@ class SqliteDatabaseHelper{
   Future<void> deleteUser(int userId) async {
     Database db = await getDataBase();
     await db.rawUpdate('UPDATE $tableName SET isDeleted = 1 WHERE id = ?', [userId]);
+  }
+
+
+  Future<int> updateData(User user) async {
+    final Database db = await getDataBase();
+    return await db.update(tableName, user.toMap(), where: 'id = ?', whereArgs: [user.id]);
   }
 
   Future<void> restoreUser(int userId) async {

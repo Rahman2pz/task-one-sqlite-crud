@@ -3,10 +3,8 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:lottie/lottie.dart';
-import 'package:task_one/adds/add_helper.dart';
+import 'package:task_one/ads/add_helper.dart';
 import 'package:task_one/view/dash_bord.dart';
-
-bool isAdLoaded = false;
 
 
 class SpashScreen extends StatefulWidget {
@@ -19,7 +17,6 @@ class SpashScreen extends StatefulWidget {
 class _SpashScreenState extends State<SpashScreen> {
   // late AppOpenAd _appOpenAds;
   // bool isAdLoaded = false;
-
   late InterstitialAd _interstitialAd;
 
 
@@ -27,7 +24,7 @@ class _SpashScreenState extends State<SpashScreen> {
   void initState() {
    // FirebaseAnalytics.instance.setCurrentScreen(screenName: 'SpashScreen');
     super.initState();
-   _createInterstitialAd();
+   // _createInterstitialAd();
     // loadAppOpenAd();
   }
 
@@ -42,10 +39,10 @@ class _SpashScreenState extends State<SpashScreen> {
             debugPrint('$ad loaded');
             _interstitialAd = ad;
             setState(() {
-              isAdLoaded = !isAdLoaded;
+              // isAdLoaded = !isAdLoaded;
             });
-            print('class splash isAdLoaded value is = $isAdLoaded');
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('isLoad $isAdLoaded')));
+            // print('class splash isAdLoaded value is = $isAdLoaded');
+            // ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('isLoad $isAdLoaded')));
             // _numInterstitialLoadAttempts = 0;
             // _interstitialAd!.setImmersiveMode(true);
           },
@@ -87,9 +84,8 @@ class _SpashScreenState extends State<SpashScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Center(
-            child: Lottie.asset('assets/animations/splash_screen.json'),
+            child: Lottie.asset('assets/animations/splash_screen.json', height: 400, width: double.infinity,),
           ),
-
           Spacer(),
           ElevatedButton(
             style:ElevatedButton.styleFrom(
@@ -97,23 +93,13 @@ class _SpashScreenState extends State<SpashScreen> {
               minimumSize: Size(MediaQuery.of(context).size.width * 0.8, 50)
             ) ,
               onPressed: (){
-              if (isAdLoaded){
-                _interstitialAd.show();
-
-                _createInterstitialAd();
-
-                setState(() {
-                  isAdLoaded = false ;
-                });
-              //   _appOpenAds.show();
+              // if (isAdLoaded){
+              //   _interstitialAd.show();
+              //   _createInterstitialAd();
                 Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) =>  DashBord(),));
-              }else{
-                setState(() {
-                  isAdLoaded = true;
-                });
-
-                _createInterstitialAd();
-              }
+              // }else{
+              //   _createInterstitialAd();
+              // }
 
                 // FirebaseCrashlytics.instance.crash();
 
